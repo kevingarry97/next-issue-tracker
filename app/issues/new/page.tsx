@@ -13,30 +13,40 @@ import { z } from "zod";
 import ErrorMessage from "@/app/components/ErrorMessage";
 import Spinner from "@/app/components/Spinner";
 
-type IssueForm = z.infer<typeof createIssueSchema>
+type IssueForm = z.infer<typeof createIssueSchema>;
 
 const NewIssuePage = () => {
   const router = useRouter();
-  const { register, control, handleSubmit, formState: { errors } } = useForm<IssueForm>({
-    resolver:zodResolver(createIssueSchema)
+  const {
+    register,
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<IssueForm>({
+    resolver: zodResolver(createIssueSchema),
   });
-  const [error, setError] = useState('')
-  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const onSubmit = handleSubmit(async (data) => {
+    try {
+      setSubmitting(true);
+      await axios.post("/api/issues", data);
+      router.push("/issues");
+    } catch (error) {
+      setSubmitting(false);
+      setError("An unexpected error occured.");
+    }
+  });
 
   return (
     <div className="max-w-xl ">
-      {error && <Callout.Root color="red" className="mb-5">
-        <Callout.Text>{error}</Callout.Text></Callout.Root>}
-      <form className="space-y-3" onSubmit={handleSubmit(async (data) => {
-        try {
-          setSubmitting(true)
-          await axios.post('/api/issues', data);
-          router.push('/issues')
-        } catch (error) {
-          setSubmitting(false)
-          setError('An unexpected error occured.');
-        }
-      })}>
+      {error && (
+        <Callout.Root color="red" className="mb-5">
+          <Callout.Text>{error}</Callout.Text>
+        </Callout.Root>
+      )}
+      <form className="space-y-3" onSubmit={onSubmit}>
         <TextField.Root placeholder="Title" {...register("title")} />
         <ErrorMessage>{errors?.title?.message}</ErrorMessage>
         <Controller
@@ -47,7 +57,9 @@ const NewIssuePage = () => {
           )}
         />
         <ErrorMessage>{errors?.description?.message}</ErrorMessage>
-        <Button disabled={submitting}>Submit New Issue {submitting && <Spinner />} </Button>
+        <Button disabled={submitting}>
+          Submit New Issue {submitting && <Spinner />}{" "}
+        </Button>
       </form>
     </div>
   );
