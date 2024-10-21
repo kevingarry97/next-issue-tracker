@@ -8,15 +8,14 @@ import { useForm, Controller } from "react-hook-form";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { createIssueSchema } from "@/app/validationSchemas";
+import { IssueSchema } from "@/app/validationSchemas";
 import { z } from "zod";
 import ErrorMessage from "@/app/components/ErrorMessage";
 import Spinner from "@/app/components/Spinner";
 import { Issue } from "@prisma/client";
+import SimpleMDE from "react-simplemde-editor";
 
-const SimpleMDE = dynamic(() => import('react-simplemde-editor'), {ssr: false})
-
-type IssueFormData = z.infer<typeof createIssueSchema>;
+type IssueFormData = z.infer<typeof IssueSchema>;
 
 const IssueForm = ({issue}: {issue?: Issue}) => {
   const router = useRouter();
@@ -26,7 +25,7 @@ const IssueForm = ({issue}: {issue?: Issue}) => {
     handleSubmit,
     formState: { errors },
   } = useForm<IssueFormData>({
-    resolver: zodResolver(createIssueSchema),
+    resolver: zodResolver(IssueSchema),
   });
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -34,8 +33,12 @@ const IssueForm = ({issue}: {issue?: Issue}) => {
   const onSubmit = handleSubmit(async (data) => {
     try {
       setSubmitting(true);
-      await axios.post("/api/issues", data);
+      if(issue) 
+        await axios.patch("/api/issues/" + issue.id, data)
+      else
+        await axios.post("/api/issues", data);
       router.push("/issues");
+      router.refresh();
     } catch (error) {
       setSubmitting(false);
       setError("An unexpected error occured.");
@@ -62,7 +65,7 @@ const IssueForm = ({issue}: {issue?: Issue}) => {
         />
         <ErrorMessage>{errors?.description?.message}</ErrorMessage>
         <Button disabled={submitting}>
-          Submit New Issue {submitting && <Spinner />}{" "}
+          {issue ? 'Update Issue' : "Submit New Issue"} {' '} {submitting && <Spinner />}{" "}
         </Button>
       </form>
     </div>
